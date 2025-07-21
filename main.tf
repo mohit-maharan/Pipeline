@@ -14,7 +14,7 @@ provider "azurerm" {
   subscription_id = "ba3dd1c9-2ade-4648-a13f-65581e2a2874"
 }
 
-resource "azurerm_resource_group" "pipeline-rg" {
-  name     = "pipeline-rg"
+resource "azurerm_resource_group" "pipelinee-rg" {
+  name     = "pipelinee-rg"
   location = "central india"
 }
