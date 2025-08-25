@@ -16,7 +16,7 @@ jobs:
     
     # Aapke reusable workflow ko yahan se call kar rahe hain
     # Iske andar hi login aur 'az account show' dono ho jayenge
-    uses: your-username/my-actions/.github/workflows/reusable-azure-login.yml@main
+    uses: mohit-maharan/az-login/.github/workflows/reusable-azure-login.yml@main
     
     # Zaroori secrets pass karne ke liye
     secrets: inherit
