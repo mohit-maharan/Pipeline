@@ -1,3 +1,21 @@
+# ------------------------------------------------------------------------------------------------------
+# This workflow automates Terraform deployment to Azure.
+#
+# Key Features:
+# 1. Runs `terraform fmt` and `terraform plan` on every push to a branch.
+# 2. Automatically applies changes to the 'main' branch if the plan is successful.
+# 3. Uses different jobs for `plan` and `apply` for better control and separation of concerns.
+# 4. Correctly uses the `azure/login` action from the marketplace.
+# 5. Caches the plan artifact to pass it between jobs securely.
+#
+# Before running this workflow, ensure the following GitHub secrets are configured:
+# - AZURE_CLIENT_ID
+# - AZURE_TENANT_ID
+# - AZURE_SUBSCRIPTION_ID
+#
+# This pipeline is designed for a self-hosted GitHub Actions runner.
+# ------------------------------------------------------------------------------------------------------
+
 name: Terraform Azure Deployment
 
 on: 
@@ -43,14 +61,9 @@ jobs:
       - name: "Terraform Init"
         id: init
         # The `terraform init` command initializes the working directory.
-        # It's a best practice to use variables for backend configuration
-        # instead of hardcoding values.
-        run: |
-          terraform init \
-            -backend-config="resource_group_name=ms-rg" \
-            -backend-config="storage_account_name=msstg3" \
-            -backend-config="container_name=tfstate" \
-            -backend-config="key=terraform.tfstate"
+        # This version of the command is now on a single line for cross-platform compatibility
+        # with both Bash and PowerShell runners.
+        run: terraform init -backend-config="resource_group_name=ms-rg" -backend-config="storage_account_name=msstg3" -backend-config="container_name=tfstate" -backend-config="key=terraform.tfstate"
 
       - name: "Terraform Format Check"
         # Check that all Terraform files are correctly formatted.
