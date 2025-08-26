@@ -1,32 +1,49 @@
+# ------------------------------------------------------------------------------------------------------
+# यह Azure के लिए एक सरल Terraform डिप्लॉयमेंट वर्कफ़्लो है।
+#
+# यह संस्करण सीखने और सरल डिप्लॉयमेंट के लिए बेहतरीन है।
+#
+# मुख्य विशेषताएं:
+# 1. `init`, `plan`, और `apply` को एक ही, अनुक्रमिक जॉब में जोड़ता है।
+# 2. कोड को स्वचालित रूप से चेक आउट करता है और Azure के साथ प्रमाणित होता है।
+#
+# इस वर्कफ़्लो को चलाने से पहले, सुनिश्चित करें कि निम्नलिखित GitHub secrets कॉन्फ़िगर किए गए हैं:
+# - AZURE_CLIENT_ID
+# - AZURE_TENANT_ID
+# - AZURE_SUBSCRIPTION_ID
+#
+# यह पाइपलाइन एक self-hosted GitHub Actions runner के लिए डिज़ाइन की गई है।
+# ------------------------------------------------------------------------------------------------------
+
 name: Simple Terraform Azure Deployment
 
 on: 
-  # Trigger the workflow on pushes to the main branch.
+  # मुख्य शाखा में पुश होने पर वर्कफ़्लो को ट्रिगर करें।
   push: 
     branches: 
       - main
-  # Allow the workflow to be manually triggered from the GitHub Actions UI.
+  # GitHub Actions UI से वर्कफ़्लो को मैन्युअल रूप से ट्रिगर करने की अनुमति दें।
   workflow_dispatch: 
 
-# Define permissions required for the workflow.
+# वर्कफ़्लो के लिए आवश्यक अनुमतियों को परिभाषित करें।
 permissions:
   id-token: write
   contents: read
 
 jobs:
   terraform_deploy:
-    # The name of the job, which will appear in the GitHub Actions UI.
+    # जॉब का नाम, जो GitHub Actions UI में दिखाई देगा।
     name: "Terraform Deploy"
-    # Specify the type of runner to use. This is set to self-hosted as requested.
+    # उपयोग किए जाने वाले रनर के प्रकार को निर्दिष्ट करें।
     runs-on: self-hosted
-    # This job will run on every push event.
+    # यह जॉब हर पुश इवेंट पर चलेगी।
     steps:
       - name: "Checkout Repository"
-        # Use the official actions/checkout action to check out the code.
+        # कोड को चेक आउट करने के लिए आधिकारिक actions/checkout एक्शन का उपयोग करें।
         uses: actions/checkout@v4
       
       - name: "Azure Login"
-        # Use the official azure/login action to authenticate with Azure via OIDC.
+        # OIDC के माध्यम से Azure के साथ प्रमाणित करने के लिए आधिकारिक azure/login एक्शन का उपयोग करें।
         uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -34,20 +51,24 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: "Setup Terraform"
-        # Use the HashiCorp setup-terraform action to install Terraform.
+        # Terraform इंस्टॉल करने के लिए HashiCorp setup-terraform एक्शन का उपयोग करें।
         uses: hashicorp/setup-terraform@v3.1.2
 
       - name: "Terraform Init"
         id: init
-        # The `terraform init` command initializes the working directory.
+        # `terraform init` कमांड वर्किंग डायरेक्टरी को इनिशियलाइज़ करता है।
         run: terraform init -backend-config="resource_group_name=ms-rg" -backend-config="storage_account_name=msstg3" -backend-config="container_name=tfstate" -backend-config="key=terraform.tfstate"
 
       - name: "Terraform Plan"
         id: plan
-        # The `terraform plan` command creates an execution plan.
+        # `terraform plan` कमांड एक execution plan बनाता है।
         run: terraform plan
+
+      - name: "Terraform Show"
+        # यह `terraform show` कमांड execution plan के मानव-पठनीय आउटपुट को दिखाता है।
+        run: terraform show
 
       - name: "Terraform Apply"
         id: apply
-        # The `terraform apply` command executes the changes. `-auto-approve` confirms them automatically.
+        # `terraform apply` कमांड परिवर्तनों को निष्पादित करता है। `-auto-approve` स्वचालित रूप से उन्हें पुष्टि करता है।
         run: terraform apply -auto-approve
