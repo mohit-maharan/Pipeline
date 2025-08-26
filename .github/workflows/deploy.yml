@@ -58,6 +58,11 @@ jobs:
         id: init
         # `terraform init` कमांड वर्किंग डायरेक्टरी को इनिशियलाइज़ करता है।
         run: terraform init -backend-config="resource_group_name=ms-rg" -backend-config="storage_account_name=msstg3" -backend-config="container_name=tfstate" -backend-config="key=terraform.tfstate"
+      
+      - name: "Terraform State Pull"
+        # यह स्टेप Terraform State फ़ाइल की सामग्री को खींचता है।
+        # यह पुष्टि करने में मदद करता है कि आपका बैकएंड ठीक से कॉन्फ़िगर है और स्टेट फ़ाइल मौजूद है।
+        run: terraform state pull
 
       - name: "Terraform Plan"
         id: plan
