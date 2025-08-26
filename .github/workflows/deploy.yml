@@ -1,48 +1,110 @@
-name: Terraform-deploy
-
+name: Terraform Azure Deployment
 
 on: 
+  # Trigger the workflow on pushes to the main branch or feature branches.
   push: 
     branches: 
       - main
       - feature/*
+  # Allow the workflow to be manually triggered from the GitHub Actions UI.
   workflow_dispatch: 
 
+# Define permissions required for the workflow.
+# `id-token: write` is needed for OIDC-based Azure login.
+# `contents: read` is needed to check out the repository.
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  terraform:
-    name: Terraform Init Plan and Apply
+  terraform_plan:
+    # The name of the job, which will appear in the GitHub Actions UI.
+    name: "Terraform Plan"
+    # Specify the type of runner to use. This is set to self-hosted as requested.
     runs-on: self-hosted
+    # This job will run on every push event.
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5.0.0
-      - name: 'Azure Login'
-        uses: mohit-maharan/az-login/.github/workflows/reusable-azure-login.yml@main
+      - name: "Checkout Repository"
+        # Use the official actions/checkout action to check out the code.
+        uses: actions/checkout@v4
+      
+      - name: "Azure Login"
+        # Use the official azure/login action to authenticate with Azure via OIDC.
+        uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: HashiCorp - Setup Terraform
+
+      - name: "Setup Terraform"
+        # Use the HashiCorp setup-terraform action to install Terraform.
         uses: hashicorp/setup-terraform@v3.1.2
-      - name: 'Terraform Init'
+
+      - name: "Terraform Init"
         id: init
+        # The `terraform init` command initializes the working directory.
+        # It's a best practice to use variables for backend configuration
+        # instead of hardcoding values.
         run: |
           terraform init \
             -backend-config="resource_group_name=ms-rg" \
             -backend-config="storage_account_name=msstg3" \
             -backend-config="container_name=tfstate" \
             -backend-config="key=terraform.tfstate"
-      - name: 'Terraform Plan'
+
+      - name: "Terraform Format Check"
+        # Check that all Terraform files are correctly formatted.
+        run: terraform fmt -check -recursive
+
+      - name: "Terraform Plan"
         id: plan
+        # The `terraform plan` command creates an execution plan.
+        # The plan output is saved to a file (`tfplan`) for later use.
         run: |
-          terraform plan \
-            -out=tfplan
-      - name: 'Terraform Apply'
+          terraform plan -out=tfplan
+          
+      - name: "Upload Terraform Plan Artifact"
+        # The `actions/upload-artifact` action saves the generated plan file.
+        # This allows the next job (`terraform_apply`) to use the same plan
+        # without running the `plan` step again.
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: tfplan
+
+  terraform_apply:
+    name: "Terraform Apply"
+    runs-on: self-hosted
+    # This job requires the `terraform_plan` job to have successfully completed.
+    needs: [terraform_plan]
+    # This conditional ensures that the apply step only runs on the main branch.
+    # This is a critical security measure to prevent unintended infrastructure changes.
+    # For pull requests or feature branches, only the plan step will run.
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "Download Terraform Plan Artifact"
+        # Retrieve the plan artifact created in the previous job.
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: .
+          
+      - name: "Azure Login"
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: "Setup Terraform"
+        uses: hashicorp/setup-terraform@v3.1.2
+
+      - name: "Terraform Apply"
         id: apply
-        run: |
-          terraform apply \
-            -auto-approve \
-            tfplan
+        # The `terraform apply` command executes the changes defined in the plan file.
+        # `-auto-approve` automatically confirms the changes without user interaction.
+        run: terraform apply -auto-approve tfplan
