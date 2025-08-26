@@ -1,0 +1,45 @@
+name: Terraform-deploy
+
+
+on: 
+  push: 
+    branches: 
+      - main
+      - feature/*
+  workflow_dispatch: 
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    name: Terraform Init Plan and Apply
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5.0.0
+      - name: 'Azure Login'
+        uses: mohit-maharan/az-login/.github/workflows/reusable-azure-login.yml@main
+        secrets: inherit
+      - name: HashiCorp - Setup Terraform
+        uses: hashicorp/setup-terraform@v3.1.2
+      - name: 'Terraform Init'
+        id: init
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=ms-rg" \
+            -backend-config="storage_account_name=msstg3" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=terraform.tfstate"
+      - name: 'Terraform Plan'
+        id: plan
+        run: |
+          terraform plan \
+            -out=tfplan
+      - name: 'Terraform Apply'
+        id: apply
+        run: |
+          terraform apply \
+            -auto-approve \
+            tfplan
