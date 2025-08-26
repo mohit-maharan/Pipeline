@@ -73,8 +73,8 @@ jobs:
         id: plan
         # The `terraform plan` command creates an execution plan.
         # The plan output is saved to a file (`tfplan`) for later use.
-        run: |
-          terraform plan -out=tfplan
+        # The command has been changed to a single line to ensure cross-platform compatibility.
+        run: terraform plan -out=tfplan
           
       - name: "Upload Terraform Plan Artifact"
         # The `actions/upload-artifact` action saves the generated plan file.
