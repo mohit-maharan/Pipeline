@@ -74,6 +74,9 @@ jobs:
         # The `terraform plan` command creates an execution plan.
         # The plan output is saved to a file (`tfplan`) for later use.
         # The command has been changed to a single line to ensure cross-platform compatibility.
+        # Set the TF_LOG environment variable to TRACE to get verbose debugging information.
+        env:
+          TF_LOG: TRACE
         run: terraform plan -out=tfplan
           
       - name: "Upload Terraform Plan Artifact"
