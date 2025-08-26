@@ -75,17 +75,6 @@ jobs:
         # The plan output is saved to a file (`tfplan`) for later use.
         # The command has been changed to a single line to ensure cross-platform compatibility.
         run: terraform plan -out=tfplan
-      
-      # --------------------------------------------------------------------------------
-      # DIAGNOSTIC STEP: Check for the existence of the `tfplan` file.
-      # This will help us confirm if the file is being created in the correct location.
-      - name: "Verify Plan File Existence"
-        run: |
-          # Use `dir` for Windows runners.
-          dir
-          # Use `ls -la` for Linux/macOS runners.
-          ls -la
-      # --------------------------------------------------------------------------------
           
       - name: "Upload Terraform Plan Artifact"
         # The `actions/upload-artifact` action saves the generated plan file.
