@@ -77,7 +77,7 @@ jobs:
         # Set the TF_LOG environment variable to TRACE to get verbose debugging information.
         env:
           TF_LOG: TRACE
-        run: terraform plan -out=tfplan
+        run: pwsh -command "terraform plan -out=tfplan"
           
       - name: "Upload Terraform Plan Artifact"
         # The `actions/upload-artifact` action saves the generated plan file.
