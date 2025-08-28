@@ -9,17 +9,8 @@ permissions:
   id-token: write
   contents: read
 
-concurrency:
-  group: terraform-${{ github.ref }}
-  cancel-in-progress: false
-
 env:
   TF_WORKING_DIR: .               # e.g., ./infra
-  # Optional: Backend vars if not in code
-  # TFSTATE_RG: ms-rg
-  # TFSTATE_SA: msstg3
-  # TFSTATE_CONTAINER: tfstate
-  # TFSTATE_KEY: terraform.tfstate
 
 jobs:
   terraform_deploy:
@@ -55,46 +46,21 @@ jobs:
           terraform -version
           az account show --output table
 
-      # Option A (recommended for CI flow): auto-fix fmt so pipeline doesn't block
-      - name: Terraform Fmt (auto-fix)
-        run: terraform fmt -recursive -no-color
+      - name: Terraform Fmt
+        run: terraform fmt 
 
-      # Option B (strict): enforce fmt and fail on diff
-      # - name: Terraform Fmt Check (strict)
-      #   run: terraform fmt -recursive -check -diff -no-color
-
+   
       - name: Terraform Init
-        run: |
-          # If backend is defined in code, simple init:
-          terraform init -input=false
-          # If backend not in code, uncomment and set:
-          # terraform init -input=false `
-          #  -backend-config="resource_group_name=${{ env.TFSTATE_RG }}" `
-          #  -backend-config="storage_account_name=${{ env.TFSTATE_SA }}" `
-          #  -backend-config="container_name=${{ env.TFSTATE_CONTAINER }}" `
-          #  -backend-config="key=${{ env.TFSTATE_KEY }}"
+        run: terraform init 
+          
 
       - name: Terraform Validate
-        run: terraform validate -no-color
+        run: terraform validate 
 
       - name: Terraform Plan (capture exit)
         id: plan
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $planArgs = @('plan','-input=false','-no-color','-out=tfplan','-detailed-exitcode')  # 0=no change, 1=error, 2=changes
-          $proc = Start-Process -FilePath 'terraform' -ArgumentList $planArgs -NoNewWindow -Wait -PassThru
-          $ec = $proc.ExitCode
-          "plan_exit_code=$ec" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          switch ($ec) {
-            2 { Write-Host 'Changes detected' }
-            0 { Write-Host 'No changes' }
-            default { throw "Plan failed with exit code $ec" }
-          }
-
-      - name: Terraform Show
-        if: steps.plan.outputs.plan_exit_code == '2'
-        run: terraform show -no-color tfplan
-
+        run: terraform plan
+          
       - name: Terraform Apply (only on changes, on main)
         if: steps.plan.outputs.plan_exit_code == '2' && github.ref == 'refs/heads/main'
-        run: terraform apply -input=false -auto-approve tfplan
+        run: terraform apply -auto-approve
