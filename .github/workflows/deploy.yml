@@ -1,21 +1,25 @@
 name: Terraform Azure (Self-hosted, Windows)
-
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
-
 permissions:
   id-token: write
   contents: read
-
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
 env:
   TF_WORKING_DIR: .               # e.g., ./infra
-
+  # Optional: Backend vars if not in code
+  # TFSTATE_RG: ms-rg
+  # TFSTATE_SA: msstg3
+  # TFSTATE_CONTAINER: tfstate
+  # TFSTATE_KEY: terraform.tfstate
 jobs:
   terraform_deploy:
     name: "Terraform Deploy"
-    runs-on: self-hosted
+    runs-on: self-hosted   # change labels if your runner differs
     defaults:
       run:
         shell: pwsh
@@ -25,35 +29,51 @@ jobs:
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}        
+      - name: Verify context
+        run: |
+          Write-Host "PWD: $(Get-Location)"
+          terraform -version
+          az account show --output table
       - name: Terraform Fmt
-        run: terraform fmt 
-
-   
+        run: terraform fmt -check -no-color
       - name: Terraform Init
-        run: terraform init 
-          
-
+        run: |
+          # If backend is defined in code, simple init:
+          terraform init -input=false
+          # If backend not in code, uncomment and set:
+          # terraform init -input=false `
+          #   -backend-config="resource_group_name=${{ env.TFSTATE_RG }}" `
+          #   -backend-config="storage_account_name=${{ env.TFSTATE_SA }}" `
+          #   -backend-config="container_name=${{ env.TFSTATE_CONTAINER }}" `
+          #   -backend-config="key=${{ env.TFSTATE_KEY }}"
       - name: Terraform Validate
-        run: terraform validate 
-
-      - name: Terraform Plan (capture exit)
+        run: terraform validate -no-color
+      - name: Terraform Plan (detailed exit)
         id: plan
-        run: terraform plan
-          
-      - name: Terraform Apply (only on changes, on main)
-        run: terraform apply -auto-approve
+        run: |
+          $ErrorActionPreference = "Stop"
+          terraform plan -input=false -no-color -out=tfplan -detailed-exitcode
+          $ec = $LASTEXITCODE
+          "plan_exit_code=$ec" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          if ($ec -eq 2) {
+            Write-Host "Changes detected"
+          } elseif ($ec -eq 0) {
+            Write-Host "No changes"
+          } else {
+            throw "Plan failed with exit code $ec"
+          }
+      - name: Terraform Show
+        if: steps.plan.outputs.plan_exit_code == '2'
+        run: terraform show -no-color tfplan
+      - name: Terraform Apply
+        if: steps.plan.outputs.plan_exit_code == '2' && github.ref == 'refs/heads/main'
+        run: terrafo
