@@ -10,16 +10,11 @@ concurrency:
   group: terraform-${{ github.ref }}
   cancel-in-progress: false
 env:
-  TF_WORKING_DIR: .               # e.g., ./infra
-  # Optional: Backend vars if not in code
-  # TFSTATE_RG: ms-rg
-  # TFSTATE_SA: msstg3
-  # TFSTATE_CONTAINER: tfstate
-  # TFSTATE_KEY: terraform.tfstate
+  TF_WORKING_DIR: .              # e.g., ./infra
 jobs:
   terraform_deploy:
     name: "Terraform Deploy"
-    runs-on: self-hosted   # change labels if your runner differs
+    runs-on: self-hosted
     defaults:
       run:
         shell: pwsh
@@ -37,43 +32,21 @@ jobs:
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}        
-      - name: Verify context
-        run: |
-          Write-Host "PWD: $(Get-Location)"
-          terraform -version
-          az account show --output table
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Terraform Fmt
-        run: terraform fmt -check -no-color
+        run: terraform fmt 
+
+
       - name: Terraform Init
-        run: |
-          # If backend is defined in code, simple init:
-          terraform init -input=false
-          # If backend not in code, uncomment and set:
-          # terraform init -input=false `
-          #   -backend-config="resource_group_name=${{ env.TFSTATE_RG }}" `
-          #   -backend-config="storage_account_name=${{ env.TFSTATE_SA }}" `
-          #   -backend-config="container_name=${{ env.TFSTATE_CONTAINER }}" `
-          #   -backend-config="key=${{ env.TFSTATE_KEY }}"
+        run: terraform init 
+
+
       - name: Terraform Validate
-        run: terraform validate -no-color
-      - name: Terraform Plan (detailed exit)
-        id: plan
-        run: |
-          $ErrorActionPreference = "Stop"
-          terraform plan -input=false -no-color -out=tfplan -detailed-exitcode
-          $ec = $LASTEXITCODE
-          "plan_exit_code=$ec" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          if ($ec -eq 2) {
-            Write-Host "Changes detected"
-          } elseif ($ec -eq 0) {
-            Write-Host "No changes"
-          } else {
-            throw "Plan failed with exit code $ec"
-          }
-      - name: Terraform Show
-        if: steps.plan.outputs.plan_exit_code == '2'
-        run: terraform show -no-color tfplan
+        run: terraform validate 
+
+      - name: Terraform Plan
+        run: terraform plan
+
       - name: Terraform Apply
-        if: steps.plan.outputs.plan_exit_code == '2' && github.ref == 'refs/heads/main'
-        run: terrafo
+        run: terraform apply -auto-approve
