@@ -15,7 +15,7 @@ env:
 jobs:
   terraform_deploy:
     name: "Terraform Deploy"
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     defaults:
       run:
         shell: pwsh
