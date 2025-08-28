@@ -40,12 +40,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Verify context
-        run: |
-          Write-Host "PWD: $(Get-Location)"
-          terraform -version
-          az account show --output table
-
       - name: Terraform Fmt
         run: terraform fmt 
 
@@ -62,5 +56,4 @@ jobs:
         run: terraform plan
           
       - name: Terraform Apply (only on changes, on main)
-        if: steps.plan.outputs.plan_exit_code == '2' && github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve
