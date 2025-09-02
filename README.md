@@ -23,14 +23,19 @@ Here’s how the project files are organized:
 
 ```
 
-.
+
+
+```markdown
 ├── .github/
 │   └── workflows/
-│       └── main.yml      \# GitHub Actions Workflow ✨
-├── main.tf               \# Main Terraform configuration 🏗️
-├── variables.tf          \# Terraform variable declarations 📝
-├── outputs.tf            \# Terraform outputs 📤
-└── terraform.tfvars      \# (Optional) Variable values - DO NOT commit sensitive data\! 🤫
+│       └── main.yml      # GitHub Actions Workflow ✨
+├── main.tf               # Main Terraform configuration 🏗️
+├── variables.tf          # Terraform variable declarations 📝
+├── outputs.tf            # Terraform outputs 📤
+└── terraform.tfvars      # (Optional) Variable values - DO NOT commit sensitive data! 🤫
+```
+
+
 
 ````
 
@@ -194,5 +199,3 @@ Happy Terraforming\! 💖
 
 ```
 
-You should be all set now! ✨ Let me know if you need anything else at all! 😊
-```
