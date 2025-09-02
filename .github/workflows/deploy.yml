@@ -64,6 +64,14 @@ jobs:
           name: terraform_plan
           path: ${{ env.TF_WORKING_DIR }}/tfplan
           retention-days: 1
+  securityScan:
+    name: Security Scan
+    runs-on: self-hosted
+    steps:
+      - name: tfsec
+        uses: aquasecurity/tfsec-action@v1.0.0
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v5.0.0  
   terraform_apply:
     name: "Terraform Apply"
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
