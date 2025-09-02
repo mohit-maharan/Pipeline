@@ -11,19 +11,18 @@ permissions:
 #   cancel-in-progress: false
 env:
   TF_WORKING_DIR: .              # e.g., ./infra
+  ARM_USE_OIDC: "true"
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 jobs:
-  terraform_deploy:
-    name: "Terraform Deploy"
+  az_login:
+    name: "Az Login"
     runs-on: self-hosted
     defaults:
       run:
         shell: pwsh
         working-directory: ${{ env.TF_WORKING_DIR }}
-    env:
-      ARM_USE_OIDC: "true"
-      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,14 +32,28 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Terraform Fmt
-        run: terraform fmt 
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true 
       - name: Terraform Init
-        run: terraform init 
+        id: init
+        run: terraform init -input=false 
+  TF_Validate_plan:
+    name: "Validateplan"
+    runs-on: self-hosted
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: ${{ env.TF_WORKING_DIR }}
+    steps:
       - name: Terraform Validate
-        run: terraform validate 
+        id: validate
+        run: terraform validate -no-color 
       - name: Terraform Plan
-        run: terraform plan
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
+        id: plan
+        run: terraform plan -no-color -input=false
+        continue-on-error: true
+        
+      # - name: Terraform Apply
+      #   run: terraform apply -auto-approve
