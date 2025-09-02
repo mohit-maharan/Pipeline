@@ -69,8 +69,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [terraform_plan]
     steps:
-      - name: tfsec
-        uses: aquasecurity/tfsec-action@v1.0.0
+      - name: Aqua Security Trivy
+        uses: aquasecurity/trivy-action@0.33.0
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v5.0.0  
   terraform_apply:
