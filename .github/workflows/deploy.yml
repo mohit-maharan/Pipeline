@@ -67,6 +67,7 @@ jobs:
   securityScan:
     name: Security Scan
     runs-on: self-hosted
+    needs: [terraform_plan]
     steps:
       - name: tfsec
         uses: aquasecurity/tfsec-action@v1.0.0
@@ -76,7 +77,7 @@ jobs:
     name: "Terraform Apply"
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: self-hosted
-    needs: [terraform_plan]
+    needs: [securityScan]
     defaults:
       run:
         shell: pwsh
