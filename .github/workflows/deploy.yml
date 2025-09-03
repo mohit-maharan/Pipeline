@@ -72,7 +72,7 @@ jobs:
       - name: 'Checkout Code'
         uses: actions/checkout@v4
       - name: Aqua Security Trivy
-        uses: aquasecurity/trivy-action@0.33.0
+        uses: aquasecurity/trivy-action@0.66.0
         with:
           scan-type: 'config'
           scan-ref: .
