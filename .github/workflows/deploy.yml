@@ -79,7 +79,7 @@ jobs:
   terraform_apply:
     name: "Terraform Apply"
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: dev
+    # environment: dev
     runs-on: self-hosted
     needs: [securityScan]
     defaults:
