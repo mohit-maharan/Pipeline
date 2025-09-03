@@ -71,6 +71,9 @@ jobs:
     steps:
       - name: Aqua Security Trivy
         uses: aquasecurity/trivy-action@0.33.0
+        with:
+          scan-type: 'config'
+          scan-ref: ${{ env.TF_WORKING_DIR }}
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v5.0.0  
   terraform_apply:
